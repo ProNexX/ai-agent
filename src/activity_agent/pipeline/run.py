@@ -19,6 +19,7 @@ NotifyFn = Callable[[SavedPipelineRow], None]
 
 def process_capture(
     capture: ScreenshotCapture,
+    active_windows: list[str],
     *,
     db_path: Path = Path("data") / "agent.db",
     ollama_url: str = "http://localhost:11434/api/generate",
@@ -26,7 +27,7 @@ def process_capture(
     on_saved: NotifyFn | None = None,
 ) -> SavedPipelineRow:
     ocr_plain = image_to_text(capture.path)
-    llm_out = ollama_evaluate(ocr_plain, url=ollama_url, model=ollama_model)
+    llm_out = ollama_evaluate(ocr_plain, active_windows, url=ollama_url, model=ollama_model)
 
     conn = connect(db_path)
     init_schema(conn)
@@ -44,4 +45,5 @@ def process_capture(
         raise RuntimeError("failed to read saved row")
     if on_saved is not None:
         on_saved(row)
+    capture.path.unlink(missing_ok=True)
     return row

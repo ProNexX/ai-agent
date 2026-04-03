@@ -20,6 +20,8 @@ ai-agent/
 
 `src/activity_agent/`: `collectors/` (window, screenshot), `core/`, `inference/` (ocr, llm), `pipeline/`, `storage/`, `api/`.
 
+**Window (Windows only, ctypes):** `from activity_agent.collectors.window import foreground_window, visible_windows, visible_apps_by_pid`. `foreground_window()` is the active window; `visible_apps_by_pid()` is one row per process with a visible titled window.
+
 Use a **64-bit Python 3.10–3.13** venv (`pyproject.toml` is `<3.14`). **3.14** has no usable Paddle wheels for this stack yet.
 
 **Install (editable, from repo root):** `pip install -e .` — pulls `mss`, `requests`, `paddlepaddle`, and `paddleocr` (OCR is required for `process_capture`, not optional).
