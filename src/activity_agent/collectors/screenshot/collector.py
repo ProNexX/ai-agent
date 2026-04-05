@@ -10,6 +10,7 @@ import mss.tools
 
 @dataclass(frozen=True)
 class ScreenshotCapture:
+    group_id: str
     id: str
     path: Path
     width: int
@@ -28,25 +29,30 @@ class ScreenshotCollector:
         self.monitor_index = monitor_index
         self.filename_prefix = filename_prefix
 
-    def capture(self) -> ScreenshotCapture:
+    def capture_all_monitors(self) -> list[ScreenshotCapture]:
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        shot_id = str(uuid.uuid4())
-        out_path = (self.output_dir / f"{self.filename_prefix}_{shot_id}.png").resolve()
+        group_id = str(uuid.uuid4())
+        captured_at = datetime.now(timezone.utc)
+        results: list[ScreenshotCapture] = []
 
         with mss.mss() as sct:
-            if self.monitor_index < 0 or self.monitor_index >= len(sct.monitors):
-                raise ValueError(
-                    f"monitor_index {self.monitor_index} invalid (0..{len(sct.monitors) - 1})"
+            physical = sct.monitors
+            for monitor_index, monitor in enumerate(physical, start=1):
+                shot_id = str(uuid.uuid4())
+                out_path = (self.output_dir / f"{self.filename_prefix}_{shot_id}.png").resolve()
+                img = sct.grab(monitor)
+                mss.tools.to_png(img.rgb, img.size, output=str(out_path))
+                w, h = img.size
+                results.append(
+                    ScreenshotCapture(
+                        group_id=group_id,
+                        id=shot_id,
+                        path=out_path,
+                        width=w,
+                        height=h,
+                        captured_at=captured_at,
+                        monitor_index=monitor_index,
+                    )
                 )
-            screenshot = sct.grab(sct.monitors[self.monitor_index])
 
-        mss.tools.to_png(screenshot.rgb, screenshot.size, output=str(out_path))
-        w, h = screenshot.size
-        return ScreenshotCapture(
-            id=shot_id,
-            path=out_path,
-            width=w,
-            height=h,
-            captured_at=datetime.now(timezone.utc),
-            monitor_index=self.monitor_index,
-        )
+        return results

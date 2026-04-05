@@ -37,3 +37,9 @@ desktop.ini
 .env
 .env.*
 !.env.example
+
+local.config.json
+
+# Local AI agent instructions (not committed)
+AGENTS.md
+agents.md

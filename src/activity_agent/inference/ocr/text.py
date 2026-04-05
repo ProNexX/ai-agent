@@ -6,17 +6,46 @@ from pathlib import Path
 from typing import Any
 
 os.environ.setdefault("FLAGS_use_mkldnn", "0")
+os.environ.setdefault("FLAGS_fraction_of_gpu_memory_to_use", "0.85")
 
 _ocr: Any = None
 
 _MAX_OCR_SIDE = 2400
 
 
+def _apply_ocr_gpu_flags_from_config() -> None:
+    try:
+        from activity_agent.config_local import load_local_config
+
+        frac = load_local_config().get("ocr_gpu_memory_fraction")
+        if isinstance(frac, (int, float)) and 0 < float(frac) <= 1:
+            os.environ["FLAGS_fraction_of_gpu_memory_to_use"] = str(float(frac))
+    except Exception:
+        pass
+
+
+def _ocr_device() -> str:
+    try:
+        from activity_agent.config_local import load_local_config
+
+        v = load_local_config().get("ocr_device")
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    except Exception:
+        pass
+    import paddle
+
+    if paddle.device.is_compiled_with_cuda() and paddle.device.cuda.device_count() > 0:
+        return "gpu:0"
+    return "cpu"
+
+
 def _get_ocr() -> Any:
     global _ocr
     if _ocr is None:
+        _apply_ocr_gpu_flags_from_config()
         try:
-            import paddle  # noqa: F401
+            import paddle
         except ModuleNotFoundError as e:
             raise ModuleNotFoundError(
                 "Install paddlepaddle first (import name is `paddle`). "
@@ -24,7 +53,11 @@ def _get_ocr() -> Any:
             ) from e
         from paddleocr import PaddleOCR
 
-        _ocr = PaddleOCR(lang="en", enable_mkldnn=False)
+        _ocr = PaddleOCR(
+            lang="en",
+            enable_mkldnn=False,
+            device=_ocr_device(),
+        )
     return _ocr
 
 

@@ -7,6 +7,7 @@ name = "activity-agent"
 version = "0.1.0"
 description = "Local PC activity monitor: screenshots, OCR, LLM, SQLite"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "mss>=9.0.0",
