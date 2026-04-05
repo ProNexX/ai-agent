@@ -1,18 +1,6 @@
 import win32con
 import win32gui
 
-def get_foreground_windows():
-    active_windows = []
-
-    def callback(h, _):
-        if is_real_app(h):
-            title = win32gui.GetWindowText(h)
-            active_windows.append(title)
-
-    win32gui.EnumWindows(callback, None)
-
-    return active_windows
-
 def is_real_app(h):
     if not win32gui.IsWindowVisible(h):
         return False
@@ -30,4 +18,14 @@ def is_real_app(h):
 
     return True
 
-print(get_foreground_windows())
+def get_foreground_windows():
+    active_windows = []
+
+    def callback(h, _):
+        if is_real_app(h):
+            title = win32gui.GetWindowText(h)
+            active_windows.append(title)
+
+    win32gui.EnumWindows(callback, None)
+
+    return active_windows
