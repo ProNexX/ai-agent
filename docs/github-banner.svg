@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-label="activity-agent project banner">
+  <defs>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#30363d"/>
+      <stop offset="18%" stop-color="#3fb950"/>
+      <stop offset="36%" stop-color="#30363d"/>
+      <stop offset="54%" stop-color="#58a6ff"/>
+      <stop offset="72%" stop-color="#30363d"/>
+      <stop offset="90%" stop-color="#d29922"/>
+      <stop offset="100%" stop-color="#30363d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" fill="#010409"/>
+  <g transform="translate(72,88)">
+    <rect x="0" y="8" width="88" height="64" rx="8" fill="none" stroke="#3fb950" stroke-width="2.5" stroke-dasharray="6 5"/>
+    <rect x="14" y="22" width="60" height="40" rx="4" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <path d="M24 52 L34 38 L44 48 L54 32 L66 46" fill="none" stroke="#3fb950" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="72" cy="18" r="4" fill="#3fb950"/>
+  </g>
+  <text x="600" y="118" text-anchor="middle" fill="#8b949e" font-family="Segoe UI, system-ui, sans-serif" font-size="42" font-weight="300">+</text>
+  <g transform="translate(1040,78)">
+    <rect x="-56" y="0" width="112" height="112" rx="16" fill="#161b22" stroke="#f0f6fc" stroke-width="2"/>
+    <text x="0" y="52" text-anchor="middle" fill="#f0f6fc" font-family="Segoe UI, system-ui, sans-serif" font-size="28" font-weight="700">Py</text>
+    <text x="0" y="82" text-anchor="middle" fill="#8b949e" font-family="Segoe UI, system-ui, sans-serif" font-size="14" font-weight="400">3.10+</text>
+  </g>
+  <text x="600" y="200" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="28">
+    <tspan fill="#8b949e" font-weight="350">ProNexX/</tspan><tspan fill="#f0f6fc" font-weight="700">activity-agent</tspan>
+  </text>
+  <text x="600" y="248" text-anchor="middle" fill="#c9d1d9" font-family="Segoe UI, system-ui, sans-serif" font-size="17" font-weight="400">Multi-monitor capture ù PaddleOCR ù vision LLM (OpenAI / Ollama) ù SQLite</text>
+  <text x="600" y="278" text-anchor="middle" fill="#8b949e" font-family="Segoe UI, system-ui, sans-serif" font-size="15" font-weight="400">Windows desktop context ù system load ù automated activity snapshots</text>
+  <rect x="0" y="332" width="1200" height="28" fill="url(#bar)"/>
+</svg>

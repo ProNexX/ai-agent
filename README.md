@@ -1,6 +1,12 @@
+<div align="center">
+  <img src="docs/github-banner.svg" alt="activity-agent — desktop activity monitoring" width="100%" />
+</div>
+
 # Activity Agent
 
 PC activity monitor: multi-monitor screenshots, window titles, OCR, vision LLM (OpenAI-compatible or Ollama), and SQLite storage. A desktop UI is planned later.
+
+**Banner:** edit `YOUR_GITHUB/` in [`docs/github-banner.svg`](docs/github-banner.svg) to your GitHub username, then commit and push so the README header updates.
 
 ## Repo layout
 
