@@ -1,13 +1,10 @@
 <div align="center">
-  <!-- GitHub’s README image proxy expects a sanitized raw URL; a plain relative docs/*.svg src often never loads. Forks: change ProNexX/activity-agent in the URL. -->
-  <img src="https://raw.githubusercontent.com/ProNexX/activity-agent/main/docs/github-banner.svg?sanitize=true" alt="activity-agent - desktop activity monitoring" width="100%" />
+<img src="docs/github-banner.svg" alt="activity-agent — desktop activity monitoring" width="100%" />
 </div>
 
 # Activity Agent
 
 PC activity monitor: multi-monitor screenshots, window titles, OCR, vision LLM (OpenAI-compatible or Ollama), and SQLite storage. A desktop UI is planned later.
-
-**Banner:** If you fork this repo, update the `raw.githubusercontent.com/…/github-banner.svg` path in the `<img>` above to your `owner/repo` (and branch if not `main`). Edit the `ProNexX/` prefix in [`docs/github-banner.svg`](docs/github-banner.svg) for different on-image text. On the GitHub file page, `.svg` preview sometimes shows “Unable to render code block”; use the **Raw** button or the README image—that does not mean the file is invalid. The [`?sanitize=true`](https://stackoverflow.com/questions/13808020/include-an-svg-hosted-on-github-in-markdown/70869502) query is required for SVG to display in READMEs.
 
 ## Repo layout
 
