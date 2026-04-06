@@ -12,7 +12,6 @@ _ocr: Any = None
 
 _MAX_OCR_SIDE = 2400
 
-
 def _apply_ocr_gpu_flags_from_config() -> None:
     try:
         from activity_agent.config_local import load_local_config
@@ -22,7 +21,6 @@ def _apply_ocr_gpu_flags_from_config() -> None:
             os.environ["FLAGS_fraction_of_gpu_memory_to_use"] = str(float(frac))
     except Exception:
         pass
-
 
 def _ocr_device() -> str:
     try:
@@ -38,7 +36,6 @@ def _ocr_device() -> str:
     if paddle.device.is_compiled_with_cuda() and paddle.device.cuda.device_count() > 0:
         return "gpu:0"
     return "cpu"
-
 
 def _get_ocr() -> Any:
     global _ocr
@@ -60,7 +57,6 @@ def _get_ocr() -> Any:
         )
     return _ocr
 
-
 def _work_path_for_ocr(image_path: Path) -> tuple[Path, Path | None]:
     from PIL import Image
 
@@ -76,7 +72,6 @@ def _work_path_for_ocr(image_path: Path) -> tuple[Path, Path | None]:
         out = Path(name)
         rgb.save(out, "PNG")
         return out, out
-
 
 def image_to_text(image_path: Path, ocr: Any = None) -> str:
     engine = ocr or _get_ocr()

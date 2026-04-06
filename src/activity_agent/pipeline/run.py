@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
+from activity_agent.collectors.desktop_context import DesktopContext, DesktopContextCollector
+from activity_agent.collectors.system_load import SystemLoadCollector, SystemLoadState
+from activity_agent.collectors.screenshot import ScreenshotCollector
 from activity_agent.collectors.screenshot.collector import ScreenshotCapture
+from activity_agent.collectors.window import WindowCollector
 from activity_agent.config_local import load_local_config
 from activity_agent.inference.llm import ollama_evaluate, openai_compatible_evaluate
 from activity_agent.inference.ocr import image_to_text
@@ -20,7 +24,6 @@ NotifyFn = Callable[[SavedPipelineRow], None]
 
 LlmProvider = Literal["openai_compatible", "ollama"]
 
-
 def _pick_str(
     kw: str | None,
     cfg: dict,
@@ -34,7 +37,6 @@ def _pick_str(
         return str(v).strip()
     return default
 
-
 def _pick_provider(cfg: dict, kw: LlmProvider | None) -> LlmProvider:
     if kw is not None:
         return kw
@@ -43,14 +45,12 @@ def _pick_provider(cfg: dict, kw: LlmProvider | None) -> LlmProvider:
         return v
     return "openai_compatible"
 
-
 def _pick_int(kw: int | None, cfg: dict, cfg_key: str, default: int) -> int:
     if kw is not None:
         return int(kw)
     if cfg_key in cfg and cfg[cfg_key] is not None:
         return int(cfg[cfg_key])
     return default
-
 
 def _pick_float(kw: float | None, cfg: dict, cfg_key: str, default: float) -> float:
     if kw is not None:
@@ -59,14 +59,12 @@ def _pick_float(kw: float | None, cfg: dict, cfg_key: str, default: float) -> fl
         return float(cfg[cfg_key])
     return default
 
-
 def _pick_bool(kw: bool | None, cfg: dict, cfg_key: str, default: bool) -> bool:
     if kw is not None:
         return bool(kw)
     if cfg_key in cfg and cfg[cfg_key] is not None:
         return bool(cfg[cfg_key])
     return default
-
 
 def _pick_optional_int(kw: int | None, cfg: dict, cfg_key: str) -> int | None:
     if kw is not None:
@@ -78,11 +76,12 @@ def _pick_optional_int(kw: int | None, cfg: dict, cfg_key: str) -> int | None:
         return int(v)
     return None
 
-
 def process_capture(
     captures: Sequence[ScreenshotCapture],
     active_windows: Sequence[str],
     *,
+    desktop_context: DesktopContext | None = None,
+    system_load: SystemLoadState | None = None,
     db_path: Path | None = None,
     llm_provider: LlmProvider | None = None,
     openai_api_key: str | None = None,
@@ -119,6 +118,12 @@ def process_capture(
         f"--- monitor {i + 1} ---\n{t}" for i, t in enumerate(ocr_per_screen)
     )
 
+    desktop_ctx = desktop_context or DesktopContextCollector().collect()
+    desktop_section = desktop_ctx.prompt_section()
+    cpu_iv = _pick_float(None, cfg, "system_load_cpu_sample_seconds", 0.1)
+    load_state = system_load or SystemLoadCollector(cpu_sample_interval=cpu_iv).collect()
+    load_section = load_state.prompt_section()
+
     timeout = _pick_float(llm_timeout, cfg, "llm_timeout", 180.0)
     img_side_opt = _pick_optional_int(max_image_side, cfg, "max_image_side")
 
@@ -145,6 +150,8 @@ def process_capture(
             paths_ordered,
             active_windows,
             ocr_per_screen,
+            desktop_section,
+            load_section,
             api_key=key,
             base_url=base,
             model=model,
@@ -166,6 +173,8 @@ def process_capture(
             paths_ordered,
             active_windows,
             ocr_per_screen,
+            desktop_section,
+            load_section,
             url=url,
             model=model,
             timeout=timeout,
@@ -197,3 +206,13 @@ def process_capture(
     for p in paths:
         p.unlink(missing_ok=True)
     return row
+
+def run_capture_pipeline(
+    *,
+    screenshot_collector: ScreenshotCollector | None = None,
+    window_collector: WindowCollector | None = None,
+    **kwargs: Any,
+) -> SavedPipelineRow:
+    caps = (screenshot_collector or ScreenshotCollector()).capture_all_monitors()
+    windows = (window_collector or WindowCollector()).collect()
+    return process_capture(caps, windows.titles, **kwargs)

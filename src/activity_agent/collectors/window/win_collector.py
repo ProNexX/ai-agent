@@ -13,7 +13,6 @@ class WindowState:
     captured_at: datetime
     titles: tuple[str, ...]
 
-
 class WindowCollector:
     def collect(self) -> WindowState:
         titles = _visible_titled_window_titles()

@@ -19,7 +19,7 @@ ai-agent/
 
 Inside `src/activity_agent/`:
 
-- **`collectors/`** — `screenshot` (`ScreenshotCollector`, `ScreenshotCapture`), `window` (`WindowCollector`, `WindowState`; Windows + **pywin32**)
+- **`collectors/`** — `screenshot`, `window`, `desktop_context` (Windows focus/idle), `system_load` (`SystemLoadCollector`, `SystemLoadState`: CPU/RAM/swap via **psutil**, cross-platform)
 - **`inference/llm/`** — OpenAI-compatible chat + Ollama vision clients, shared prompt
 - **`inference/ocr/`** — PaddleOCR wrapper (`image_to_text`)
 - **`pipeline/`** — `process_capture` orchestrates OCR → LLM → DB
@@ -29,8 +29,7 @@ Inside `src/activity_agent/`:
 ## Requirements
 
 - **64-bit Python 3.10–3.13** (`requires-python` is `<3.14`; Paddle wheels for this stack are not reliable on 3.14 yet).
-- **Windows** for the window collector (uses Win32 APIs).
-- **pywin32** for `WindowCollector` (install separately if imports fail: `pip install pywin32`).
+- **Windows** for window and desktop-context collectors (Win32 APIs via **pywin32**, declared in `pyproject.toml`).
 
 ## Install
 
@@ -40,7 +39,7 @@ From the repo root, in a venv:
 pip install -e .
 ```
 
-This installs `mss`, `requests`, `paddlepaddle` (CPU wheel from PyPI), and `paddleocr`.
+This installs `mss`, `requests`, `pywin32`, `psutil`, `paddlepaddle` (CPU wheel from PyPI), and `paddleocr`.
 
 ### Paddle GPU (optional, faster OCR)
 
@@ -65,18 +64,38 @@ Typical keys:
 | `ollama_url`, `ollama_model`, `ollama_max_tokens` | When `llm_provider` is `ollama` |
 | `ocr_device` | e.g. `gpu:0` or `cpu` (optional; defaults to GPU when CUDA is available) |
 | `ocr_gpu_memory_fraction` | Optional `0`–`1` Paddle GPU memory cap |
+| `pipeline_interval_seconds` | `0`, missing, or invalid: run **once** and exit. Positive number: **`main.py`** repeats `run_capture_pipeline` every that many seconds until Ctrl+C. |
+| `system_load_cpu_sample_seconds` | How long to sample CPU for `SystemLoadCollector` (default **0.1**). Use **0** for a non-blocking read (less representative on first sample). |
 
-Arguments passed to **`process_capture(...)`** override JSON values when provided.
+Arguments passed to **`process_capture(...)`** override JSON values when provided. Optional **`desktop_context=`** / **`system_load=`** let you pass pre-built snapshots; otherwise fresh collectors run each pipeline pass.
 
 ## Pipeline behavior
 
 1. **Screenshots** — `ScreenshotCollector().capture_all_monitors()` saves one PNG per monitor (`ScreenshotCapture` rows share a `group_id`).
 2. **Windows** — `WindowCollector().collect()` returns titles in `WindowState.titles`.
-3. **OCR** — Each screenshot is run through PaddleOCR; text is sent to the LLM together with the images.
-4. **LLM** — Asks for **JSON** with `tasks`, `distractions`, and `problems` (arrays of strings). Default provider uses the OpenAI **Chat Completions** API with vision; set `llm_provider` to `ollama` for local models (e.g. LLaVA-class).
-5. **Storage** — Row written to **`pipeline_results`**; screenshot files are deleted after a successful save.
+3. **Desktop context** — `DesktopContextCollector().collect()` (unless `desktop_context=`) records foreground window (title, PID, executable), input idle, and in-process focus history (Windows).
+4. **System load** — `SystemLoadCollector().collect()` (unless `system_load=`) records CPU % (short sample), RAM use, and swap/page-file use (**psutil**).
+5. **OCR** — Each screenshot is run through PaddleOCR; text is sent to the LLM with images plus desktop-context and system-load blocks.
+6. **LLM** — Asks for **JSON** with `tasks`, `distractions`, and `problems` (arrays of strings). Default provider uses the OpenAI **Chat Completions** API with vision; set `llm_provider` to `ollama` for local models (e.g. LLaVA-class).
+7. **Storage** — Row written to **`pipeline_results`**; screenshot files are deleted after a successful save.
+
+## Running `main.py`
+
+- **`python main.py`** — Uses **`pipeline_interval_seconds`** from `local.config.json` (default behavior when the key is missing is **one run**).
+- **`python main.py --once`** — Single run even if an interval is set in config.
+- **`python main.py --interval 120`** — Run every **120** seconds (overrides config). **`--interval 0`** means one run.
+
+Between repeats, **Ctrl+C** stops the loop (after the current cycle finishes, or while sleeping).
 
 ## Example
+
+```python
+from activity_agent.pipeline import run_capture_pipeline
+
+row = run_capture_pipeline()
+```
+
+To wire collectors yourself (custom paths, tests, or partial runs):
 
 ```python
 from activity_agent.collectors.screenshot import ScreenshotCollector

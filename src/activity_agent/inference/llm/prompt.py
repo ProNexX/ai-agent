@@ -4,18 +4,18 @@ from collections.abc import Sequence
 
 _OCR_PER_SCREEN_MAX = 5000
 
-
 def clip_ocr_text(text: str, limit: int = _OCR_PER_SCREEN_MAX) -> str:
     t = text.strip()
     if len(t) <= limit:
         return t
     return t[: limit - 1] + "..."
 
-
 def build_activity_json_prompt(
     num_screens: int,
     active_windows: Sequence[str],
     ocr_per_screen: Sequence[str],
+    desktop_context_section: str = "",
+    system_load_section: str = "",
 ) -> str:
     if len(ocr_per_screen) != num_screens:
         raise ValueError("ocr_per_screen length must match num_screens")
@@ -30,6 +30,12 @@ def build_activity_json_prompt(
         ocr_blocks.append(f"--- OCR monitor {i + 1} ---\n{clipped or '(no text detected)'}")
     ocr_section = "\n\n".join(ocr_blocks)
     titles = "\n".join(f"- {t}" for t in active_windows[:80]) or "(none listed)"
+    ctx = (desktop_context_section or "").strip()
+    context_block = (
+        f"System / input / focus context:\n{ctx}\n\n" if ctx else ""
+    )
+    load = (system_load_section or "").strip()
+    load_block = f"System load snapshot:\n{load}\n\n" if load else ""
     schema_hint = (
         '{"tasks":["short string",...],'
         '"distractions":["short string",...],'
@@ -37,6 +43,8 @@ def build_activity_json_prompt(
     )
     return (
         f"{monitor_note}\n\n"
+        f"{context_block}"
+        f"{load_block}"
         "Window titles (may be incomplete):\n"
         f"{titles}\n\n"
         "OCR text extracted per monitor (may have errors; use with the images):\n"

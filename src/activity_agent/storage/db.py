@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 @dataclass(frozen=True)
 class SavedPipelineRow:
     id: int
@@ -14,11 +13,9 @@ class SavedPipelineRow:
     ocr_text: str
     llm_text: str
 
-
 def connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(str(db_path))
-
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
@@ -35,7 +32,6 @@ def init_schema(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
-
 
 def insert_pipeline_result(
     conn: sqlite3.Connection,
@@ -63,7 +59,6 @@ def insert_pipeline_result(
     )
     conn.commit()
     return int(cur.lastrowid)
-
 
 def load_row(conn: sqlite3.Connection, row_id: int) -> SavedPipelineRow | None:
     cur = conn.execute(

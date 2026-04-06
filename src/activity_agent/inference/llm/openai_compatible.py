@@ -12,7 +12,6 @@ from activity_agent.inference.llm.prompt import build_activity_json_prompt
 
 _DEFAULT_MAX_IMAGE_SIDE = 2048
 
-
 def _chat_completions_url(base_url: str) -> str:
     raw = (base_url or "").strip().rstrip("/")
     if not raw:
@@ -29,7 +28,6 @@ def _chat_completions_url(base_url: str) -> str:
         path = f"{path}/v1"
     base = f"{scheme}://{netloc}{path}"
     return f"{base}/chat/completions"
-
 
 def _png_bytes_for_model(path: Path, max_side: int) -> bytes:
     raw = path.read_bytes()
@@ -48,11 +46,12 @@ def _png_bytes_for_model(path: Path, max_side: int) -> bytes:
         rgb.save(buf, format="PNG")
         return buf.getvalue()
 
-
 def openai_compatible_evaluate(
     image_paths: Sequence[Path],
     active_windows: Sequence[str],
     ocr_per_screen: Sequence[str],
+    desktop_context_section: str = "",
+    system_load_section: str = "",
     *,
     api_key: str,
     base_url: str = "https://api.openai.com/v1",
@@ -68,7 +67,15 @@ def openai_compatible_evaluate(
     n = len(image_paths)
     if len(ocr_per_screen) != n:
         raise ValueError("ocr_per_screen length must match image_paths")
-    prompt = build_activity_json_prompt(n, active_windows, ocr_per_screen)
+    prompt = build_activity_json_prompt(
+        n,
+        active_windows,
+        ocr_per_screen,
+        desktop_context_section=desktop_context_section,
+        system_load_section=system_load_section,
+    )
+    print(prompt)
+
     content: list[dict[str, object]] = [{"type": "text", "text": prompt}]
     for p in image_paths:
         data = _png_bytes_for_model(p.resolve(), max_image_side)
@@ -87,6 +94,7 @@ def openai_compatible_evaluate(
     }
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
+
     r = requests.post(
         url,
         headers={
