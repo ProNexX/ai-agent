@@ -26,7 +26,7 @@
   <text x="600" y="200" text-anchor="middle" font-family="Segoe UI, system-ui, sans-serif" font-size="28">
     <tspan fill="#8b949e" font-weight="350">ProNexX/</tspan><tspan fill="#f0f6fc" font-weight="700">activity-agent</tspan>
   </text>
-  <text x="600" y="248" text-anchor="middle" fill="#c9d1d9" font-family="Segoe UI, system-ui, sans-serif" font-size="17" font-weight="400">Multi-monitor capture ù PaddleOCR ù vision LLM (OpenAI / Ollama) ù SQLite</text>
-  <text x="600" y="278" text-anchor="middle" fill="#8b949e" font-family="Segoe UI, system-ui, sans-serif" font-size="15" font-weight="400">Windows desktop context ù system load ù automated activity snapshots</text>
+  <text x="600" y="248" text-anchor="middle" fill="#c9d1d9" font-family="Segoe UI, system-ui, sans-serif" font-size="17" font-weight="400">Multi-monitor capture | PaddleOCR | vision LLM (OpenAI / Ollama) | SQLite</text>
+  <text x="600" y="278" text-anchor="middle" fill="#8b949e" font-family="Segoe UI, system-ui, sans-serif" font-size="15" font-weight="400">Windows desktop context | system load | automated activity snapshots</text>
   <rect x="0" y="332" width="1200" height="28" fill="url(#bar)"/>
 </svg>
