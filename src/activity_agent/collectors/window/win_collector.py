@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import win32con
 import win32gui
 
-@dataclass(frozen=True)
-class WindowState:
-    id: str
-    captured_at: datetime
-    titles: tuple[str, ...]
+from activity_agent.collectors.window.types import WindowState
 
 class WindowCollector:
     def collect(self) -> WindowState:
