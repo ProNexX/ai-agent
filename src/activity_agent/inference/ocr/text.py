@@ -15,6 +15,28 @@ _ocr: Any = None
 
 _MAX_OCR_SIDE = 2400
 
+def _ocr_line_is_useful(line: str) -> bool:
+    s = line.strip()
+    if len(s) < 2:
+        return False
+    if not any(c.isalnum() for c in s):
+        return False
+    return True
+
+def _filter_ocr_lines(lines: list[str]) -> list[str]:
+    out: list[str] = []
+    prev_norm: str | None = None
+    for raw in lines:
+        if not _ocr_line_is_useful(raw):
+            continue
+        s = raw.strip()
+        norm = s.casefold()
+        if norm == prev_norm:
+            continue
+        out.append(s)
+        prev_norm = norm
+    return out
+
 def _apply_ocr_gpu_flags_from_config() -> None:
     try:
         from activity_agent.config_local import load_local_config
@@ -88,7 +110,7 @@ def image_to_text(image_path: Path, ocr: Any = None) -> str:
                     lines.append(str(t[0]))
                 else:
                     lines.append(str(t))
-        return "\n".join(lines)
+        return "\n".join(_filter_ocr_lines(lines))
     finally:
         if tmp is not None:
             tmp.unlink(missing_ok=True)
