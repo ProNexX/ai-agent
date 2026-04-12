@@ -18,5 +18,8 @@ dependencies = [
     "psutil>=5.9.0",
 ]
 
+[project.scripts]
+activity-agent-view = "activity_agent.ui.viewer:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]

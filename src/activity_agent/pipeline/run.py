@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -99,6 +100,7 @@ def process_capture(
     llm_timeout: float | None = None,
     max_image_side: int | None = None,
     on_saved: NotifyFn | None = None,
+    worked_at: datetime | None = None,
 ) -> SavedPipelineRow:
     cfg = load_local_config()
     eff_db = db_path
@@ -200,6 +202,7 @@ def process_capture(
         ocr_text=ocr_combined,
         llm_text=llm_out,
         captured_at=captured_at,
+        worked_at=worked_at,
     )
     row = load_row(conn, row_id)
     conn.close()

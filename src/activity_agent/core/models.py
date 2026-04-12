@@ -93,3 +93,20 @@ class SavedPipelineRow:
     image_path: str
     ocr_text: str
     llm_text: str
+    captured_at: str
+    processed_at: str
+    worked_at: str
+
+
+@dataclass(frozen=True)
+class PipelineResultRecord:
+    """Full `pipeline_results` row (timestamps as ISO strings from SQLite)."""
+
+    id: int
+    capture_id: str
+    image_path: str
+    ocr_text: str
+    llm_text: str
+    captured_at: str
+    processed_at: str
+    worked_at: str
