@@ -1,17 +1,11 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-@dataclass(frozen=True)
-class SavedPipelineRow:
-    id: int
-    capture_id: str
-    image_path: str
-    ocr_text: str
-    llm_text: str
+from activity_agent.core.models import SavedPipelineRow
+
 
 def connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)

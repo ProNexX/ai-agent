@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import win32con
 import win32gui
 
-from activity_agent.collectors.window.types import WindowState
+from activity_agent.core.models import WindowState
 
 class WindowCollector:
     def collect(self) -> WindowState:

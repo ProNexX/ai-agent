@@ -12,7 +12,7 @@ import win32con
 import win32gui
 import win32process
 
-from activity_agent.collectors.desktop_context.types import (
+from activity_agent.core.models import (
     DesktopContext,
     FocusChange,
     ForegroundFocus,

@@ -5,7 +5,7 @@ if sys.platform == "win32":
 else:
     from activity_agent.collectors.desktop_context.stub_collector import DesktopContextCollector
 
-from activity_agent.collectors.desktop_context.types import (
+from activity_agent.core.models import (
     DesktopContext,
     FocusChange,
     ForegroundFocus,

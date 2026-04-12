@@ -4,16 +4,20 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal
 
-from activity_agent.collectors.desktop_context import DesktopContext, DesktopContextCollector
-from activity_agent.collectors.system_load import SystemLoadCollector, SystemLoadState
+from activity_agent.collectors.desktop_context import DesktopContextCollector
 from activity_agent.collectors.screenshot import ScreenshotCollector
-from activity_agent.collectors.screenshot.collector import ScreenshotCapture
+from activity_agent.collectors.system_load import SystemLoadCollector
 from activity_agent.collectors.window import WindowCollector
 from activity_agent.config_local import load_local_config
+from activity_agent.core.models import (
+    DesktopContext,
+    SavedPipelineRow,
+    ScreenshotCapture,
+    SystemLoadState,
+)
 from activity_agent.inference.llm import ollama_evaluate, openai_compatible_evaluate
 from activity_agent.inference.ocr import image_to_text
 from activity_agent.storage.db import (
-    SavedPipelineRow,
     connect,
     init_schema,
     insert_pipeline_result,

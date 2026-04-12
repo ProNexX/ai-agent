@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import sys
 import uuid
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,15 +12,7 @@ import mss
 import mss.tools
 from mss.exception import ScreenShotError
 
-@dataclass(frozen=True)
-class ScreenshotCapture:
-    group_id: str
-    id: str
-    path: Path
-    width: int
-    height: int
-    captured_at: datetime
-    monitor_index: int
+from activity_agent.core.models import ScreenshotCapture
 
 def _png_ihdr_size(path: Path) -> tuple[int, int]:
     with path.open("rb") as f:

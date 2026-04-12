@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from activity_agent.collectors.desktop_context.types import DesktopContext
+from activity_agent.core.models import DesktopContext
 
 class DesktopContextCollector:
     def collect(self) -> DesktopContext:

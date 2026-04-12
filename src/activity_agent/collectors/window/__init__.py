@@ -5,6 +5,6 @@ if sys.platform == "win32":
 else:
     from activity_agent.collectors.window.stub_collector import WindowCollector
 
-from activity_agent.collectors.window.types import WindowState
+from activity_agent.core.models import WindowState
 
 __all__ = ["WindowCollector", "WindowState"]
