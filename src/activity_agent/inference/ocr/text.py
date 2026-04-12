@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any
 
 os.environ.setdefault("FLAGS_use_mkldnn", "0")
+# PaddleX defaults CPU inference to mkldnn/oneDNN; Paddle 3.3+ can crash in PIR→oneDNN
+# (NotImplementedError in onednn_instruction). Disable unless explicitly overridden.
+os.environ.setdefault("PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT", "0")
 os.environ.setdefault("FLAGS_fraction_of_gpu_memory_to_use", "0.85")
 
 _ocr: Any = None
