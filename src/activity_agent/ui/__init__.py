@@ -1,1 +1,1 @@
-"""Tkinter UI (results viewer); entry also via repo-root `desktop/viewer.py`."""
+"""UI package: optional browser app (`web_app`) and shared LLM formatting (`llm_format`)."""

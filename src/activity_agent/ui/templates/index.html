@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Runs — Activity Agent{% endblock %}
+{% block body %}
+<section class="panel">
+  <div class="panel-head">
+    <h1>Capture runs</h1>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btn-run">Run capture now</button>
+      <span class="job-status" id="job-status" aria-live="polite"></span>
+    </div>
+  </div>
+  <p class="muted">Database: <code>{{ db_path }}</code></p>
+</section>
+
+<section class="panel">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Worked at</th>
+        <th>Capture</th>
+        <th>Preview</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a href="/row/{{ r.id }}">{{ r.id }}</a></td>
+        <td>{{ short_ts(r.worked_at) }}</td>
+        <td class="mono">{{ r.capture_id[:40] }}{% if r.capture_id|length > 40 %}…{% endif %}</td>
+        <td class="preview">{{ llm_tree_preview(r.llm_text, 96) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No rows yet. Run a capture from the CLI or use the button above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<script>
+(function () {
+  const btn = document.getElementById("btn-run");
+  const status = document.getElementById("job-status");
+  let poll = null;
+
+  function setStatus(t, cls) {
+    status.textContent = t;
+    status.className = "job-status" + (cls ? " " + cls : "");
+  }
+
+  async function pollJob(jobId) {
+    const r = await fetch("/api/job/" + encodeURIComponent(jobId));
+    if (!r.ok) {
+      if (poll) { clearInterval(poll); poll = null; }
+      setStatus("Job status failed", "err");
+      return;
+    }
+    const j = await r.json();
+    if (j.state === "running") {
+      setStatus("Running capture…", "run");
+      return;
+    }
+    if (poll) { clearInterval(poll); poll = null; }
+    if (j.state === "done") {
+      setStatus("Saved row #" + j.row_id + ".", "ok");
+      window.location.href = "/row/" + j.row_id;
+      return;
+    }
+    setStatus("Error: " + (j.error || "unknown"), "err");
+  }
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    setStatus("Starting…", "run");
+    try {
+      const r = await fetch("/api/run", { method: "POST" });
+      if (!r.ok) throw new Error(await r.text());
+      const j = await r.json();
+      const jobId = j.job_id;
+      if (poll) { clearInterval(poll); poll = null; }
+      await pollJob(jobId);
+      poll = setInterval(() => pollJob(jobId), 1000);
+    } catch (e) {
+      setStatus(String(e), "err");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

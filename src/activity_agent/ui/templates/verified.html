@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Verified fixes — Activity Agent{% endblock %}
+{% block body %}
+<section class="panel">
+  <h1>Verified fixes</h1>
+  <p class="muted">These rows are fed back into the LLM when the context loop requests <code>past_verified_solutions</code>.</p>
+  {% if request.query_params.get('saved') %}
+  <p class="banner ok">Saved.</p>
+  {% endif %}
+  {% if request.query_params.get('err') %}
+  <p class="banner err">Problem and solution must not be empty.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Add a fix you confirmed</h2>
+  <form method="post" action="/verified" class="stack-form">
+    <label>Problem (short)<input name="problem" type="text" required maxlength="2000" /></label>
+    <label>Solution / what worked<textarea name="solution" rows="4" required maxlength="8000"></textarea></label>
+    <label>Optional pipeline row id<input name="pipeline_result_id" type="text" inputmode="numeric" placeholder="e.g. 42" /></label>
+    <button type="submit" class="btn primary">Save verified fix</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>History</h2>
+  <p class="muted">Database: <code>{{ db_path }}</code></p>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Verified</th>
+        <th>Problem</th>
+        <th>Solution</th>
+        <th>Pipeline #</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.id }}</td>
+        <td>{{ short_ts(it.verified_at) }}</td>
+        <td class="wrap">{{ it.problem_summary }}</td>
+        <td class="wrap">{{ it.solution_text }}</td>
+        <td>{% if it.pipeline_result_id %}<a href="/row/{{ it.pipeline_result_id }}">{{ it.pipeline_result_id }}</a>{% else %}—{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">None yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

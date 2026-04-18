@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ rec.id }} — Activity Agent{% endblock %}
+{% block body %}
+<section class="panel">
+  <p class="back"><a href="/">← All runs</a></p>
+  <h1>Run #{{ rec.id }}</h1>
+  <dl class="meta-grid">
+    <dt>Worked at</dt>
+    <dd>{{ short_ts(rec.worked_at) }} <span class="muted">({{ rec.worked_at }})</span></dd>
+    <dt>Captured</dt>
+    <dd>{{ rec.captured_at }}</dd>
+    <dt>Processed</dt>
+    <dd>{{ rec.processed_at }}</dd>
+    <dt>capture_id</dt>
+    <dd class="mono wrap">{{ rec.capture_id }}</dd>
+    <dt>image_path</dt>
+    <dd class="mono wrap">{{ rec.image_path }}</dd>
+  </dl>
+</section>
+
+<section class="panel">
+  <h2>OCR</h2>
+  <pre class="block-text">{{ rec.ocr_text }}</pre>
+</section>
+
+<section class="panel">
+  <h2>LLM summary</h2>
+  <pre class="block-text">{{ llm_summary }}</pre>
+</section>
+
+<section class="panel">
+  <h2>LLM raw</h2>
+  <pre class="block-text">{{ llm_raw }}</pre>
+</section>
+{% endblock %}

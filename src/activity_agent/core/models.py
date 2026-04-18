@@ -97,7 +97,6 @@ class SavedPipelineRow:
     processed_at: str
     worked_at: str
 
-
 @dataclass(frozen=True)
 class PipelineResultRecord:
     """Full `pipeline_results` row (timestamps as ISO strings from SQLite)."""

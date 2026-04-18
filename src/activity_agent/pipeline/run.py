@@ -17,12 +17,14 @@ from activity_agent.core.models import (
     SystemLoadState,
 )
 from activity_agent.inference.llm import ollama_evaluate, openai_compatible_evaluate
+from activity_agent.inference.llm.context_loop import run_activity_llm_context_loop
 from activity_agent.inference.ocr import image_to_text
 from activity_agent.storage.db import (
     connect,
     init_schema,
     insert_pipeline_result,
     load_row,
+    verified_solutions_prompt_section,
 )
 
 NotifyFn = Callable[[SavedPipelineRow], None]
@@ -132,6 +134,15 @@ def process_capture(
 
     timeout = _pick_float(llm_timeout, cfg, "llm_timeout", 180.0)
     img_side_opt = _pick_optional_int(max_image_side, cfg, "max_image_side")
+    context_loop = _pick_bool(None, cfg, "llm_context_loop_enabled", False)
+    past_limit = _pick_int(None, cfg, "verified_solutions_prompt_limit", 8)
+    planner_tokens = _pick_int(None, cfg, "llm_planner_max_tokens", 256)
+
+    conn = connect(eff_db)
+    init_schema(conn)
+    past_for_loop = ""
+    if context_loop:
+        past_for_loop = verified_solutions_prompt_section(conn, limit=past_limit)
 
     if provider == "openai_compatible":
         key = _pick_str(openai_api_key, cfg, "openai_api_key")
@@ -152,20 +163,43 @@ def process_capture(
             "gpt-4o-mini",
         )
         img_side = img_side_opt if img_side_opt is not None else 2048
-        llm_out = openai_compatible_evaluate(
-            paths_ordered,
-            active_windows,
-            ocr_per_screen,
-            desktop_section,
-            load_section,
-            api_key=key,
-            base_url=base,
-            model=model,
-            timeout=timeout,
-            max_tokens=_pick_int(openai_max_tokens, cfg, "openai_max_tokens", 1024),
-            max_image_side=img_side,
-            json_mode=_pick_bool(openai_json_mode, cfg, "openai_json_mode", True),
-        )
+        planner_model = _pick_str(None, cfg, "openai_planner_model", "")
+        if not planner_model:
+            planner_model = model
+        if context_loop:
+            llm_out = run_activity_llm_context_loop(
+                "openai_compatible",
+                paths_ordered,
+                active_windows,
+                ocr_per_screen,
+                desktop_section,
+                load_section,
+                past_verified_solutions_section=past_for_loop,
+                openai_api_key=key,
+                openai_base_url=base,
+                openai_planner_model=planner_model,
+                openai_final_model=model,
+                timeout=timeout,
+                planner_max_tokens=planner_tokens,
+                final_max_tokens=_pick_int(openai_max_tokens, cfg, "openai_max_tokens", 1024),
+                max_image_side=img_side,
+                openai_json_mode=_pick_bool(openai_json_mode, cfg, "openai_json_mode", True),
+            )
+        else:
+            llm_out = openai_compatible_evaluate(
+                paths_ordered,
+                active_windows,
+                ocr_per_screen,
+                desktop_section,
+                load_section,
+                api_key=key,
+                base_url=base,
+                model=model,
+                timeout=timeout,
+                max_tokens=_pick_int(openai_max_tokens, cfg, "openai_max_tokens", 1024),
+                max_image_side=img_side,
+                json_mode=_pick_bool(openai_json_mode, cfg, "openai_json_mode", True),
+            )
     elif provider == "ollama":
         url = _pick_str(
             ollama_url,
@@ -175,26 +209,45 @@ def process_capture(
         )
         model = _pick_str(ollama_model, cfg, "ollama_model", "llava")
         img_side = img_side_opt if img_side_opt is not None else 1280
-        llm_out = ollama_evaluate(
-            paths_ordered,
-            active_windows,
-            ocr_per_screen,
-            desktop_section,
-            load_section,
-            url=url,
-            model=model,
-            timeout=timeout,
-            max_tokens=_pick_int(ollama_max_tokens, cfg, "ollama_max_tokens", 512),
-            max_image_side=img_side,
-        )
+        planner_model = _pick_str(None, cfg, "ollama_planner_model", "")
+        if not planner_model:
+            planner_model = model
+        if context_loop:
+            llm_out = run_activity_llm_context_loop(
+                "ollama",
+                paths_ordered,
+                active_windows,
+                ocr_per_screen,
+                desktop_section,
+                load_section,
+                past_verified_solutions_section=past_for_loop,
+                ollama_url=url,
+                ollama_planner_model=planner_model,
+                ollama_final_model=model,
+                timeout=timeout,
+                planner_max_tokens=planner_tokens,
+                final_max_tokens=_pick_int(ollama_max_tokens, cfg, "ollama_max_tokens", 512),
+                max_image_side=img_side,
+            )
+        else:
+            llm_out = ollama_evaluate(
+                paths_ordered,
+                active_windows,
+                ocr_per_screen,
+                desktop_section,
+                load_section,
+                url=url,
+                model=model,
+                timeout=timeout,
+                max_tokens=_pick_int(ollama_max_tokens, cfg, "ollama_max_tokens", 512),
+                max_image_side=img_side,
+            )
     else:
         raise ValueError(f"unknown llm_provider: {provider!r}")
 
     image_path = "|".join(str(p) for p in paths_ordered)
     captured_at = captures[0].captured_at
 
-    conn = connect(eff_db)
-    init_schema(conn)
     row_id = insert_pipeline_result(
         conn,
         capture_id=group_id,

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Activity Agent{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a href="/" class="brand">Activity Agent</a>
+      <nav>
+        <a href="/">Runs</a>
+        <a href="/verified">Verified fixes</a>
+      </nav>
+    </div>
+  </header>
+  <main class="main">
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

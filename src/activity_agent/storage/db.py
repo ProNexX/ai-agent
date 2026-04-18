@@ -23,6 +23,20 @@ def _migrate_worked_at(conn: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_verified_solutions(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS verified_solutions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            problem_summary TEXT NOT NULL,
+            solution_text TEXT NOT NULL,
+            pipeline_result_id INTEGER,
+            verified_at TEXT NOT NULL
+        )
+        """
+    )
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
@@ -38,6 +52,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
         """
     )
     _migrate_worked_at(conn)
+    _ensure_verified_solutions(conn)
     conn.commit()
 
 def insert_pipeline_result(
@@ -157,3 +172,84 @@ def fetch_pipeline_result(
         processed_at=row[6],
         worked_at=worked,
     )
+
+
+def insert_verified_solution(
+    conn: sqlite3.Connection,
+    *,
+    problem_summary: str,
+    solution_text: str,
+    pipeline_result_id: int | None = None,
+) -> int:
+    _ensure_verified_solutions(conn)
+    verified = datetime.now(timezone.utc).isoformat()
+    cur = conn.execute(
+        """
+        INSERT INTO verified_solutions
+        (problem_summary, solution_text, pipeline_result_id, verified_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (problem_summary.strip(), solution_text.strip(), pipeline_result_id, verified),
+    )
+    conn.commit()
+    return int(cur.lastrowid)
+
+
+def list_verified_solutions(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 100,
+) -> list[dict[str, int | str | None]]:
+    """Recent verified fixes for UI (newest first)."""
+    _ensure_verified_solutions(conn)
+    lim = max(1, min(int(limit), 500))
+    cur = conn.execute(
+        """
+        SELECT id, problem_summary, solution_text, pipeline_result_id, verified_at
+        FROM verified_solutions
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (lim,),
+    )
+    out: list[dict[str, int | str | None]] = []
+    for row in cur.fetchall():
+        out.append(
+            {
+                "id": int(row[0]),
+                "problem_summary": str(row[1]),
+                "solution_text": str(row[2]),
+                "pipeline_result_id": int(row[3]) if row[3] is not None else None,
+                "verified_at": str(row[4]),
+            }
+        )
+    return out
+
+
+def verified_solutions_prompt_section(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 8,
+) -> str:
+    """Human-readable block for LLM prompts; empty if none."""
+    _ensure_verified_solutions(conn)
+    lim = max(1, min(int(limit), 50))
+    cur = conn.execute(
+        """
+        SELECT problem_summary, solution_text
+        FROM verified_solutions
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (lim,),
+    )
+    rows = cur.fetchall()
+    if not rows:
+        return ""
+    lines = [
+        "Previously verified fixes (user confirmed these worked; use as hints, not facts):"
+    ]
+    for prob, sol in rows:
+        lines.append(f"- Problem: {prob}")
+        lines.append(f"  Fix that worked: {sol}")
+    return "\n".join(lines)

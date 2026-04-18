@@ -46,12 +46,9 @@ def _png_bytes_for_model(path: Path, max_side: int) -> bytes:
         rgb.save(buf, format="PNG")
         return buf.getvalue()
 
-def openai_compatible_evaluate(
+def openai_compatible_json_completion(
+    user_text: str,
     image_paths: Sequence[Path],
-    active_windows: Sequence[str],
-    ocr_per_screen: Sequence[str],
-    desktop_context_section: str = "",
-    system_load_section: str = "",
     *,
     api_key: str,
     base_url: str = "https://api.openai.com/v1",
@@ -61,22 +58,11 @@ def openai_compatible_evaluate(
     max_image_side: int = _DEFAULT_MAX_IMAGE_SIDE,
     json_mode: bool = True,
 ) -> str:
+    """Single user turn with text + images; returns assistant message content."""
     api_key = str(api_key).strip()
     if not api_key:
         raise ValueError("api_key is empty")
-    n = len(image_paths)
-    if len(ocr_per_screen) != n:
-        raise ValueError("ocr_per_screen length must match image_paths")
-    prompt = build_activity_json_prompt(
-        n,
-        active_windows,
-        ocr_per_screen,
-        desktop_context_section=desktop_context_section,
-        system_load_section=system_load_section,
-    )
-    print(prompt)
-
-    content: list[dict[str, object]] = [{"type": "text", "text": prompt}]
+    content: list[dict[str, object]] = [{"type": "text", "text": user_text}]
     for p in image_paths:
         data = _png_bytes_for_model(p.resolve(), max_image_side)
         b64 = base64.standard_b64encode(data).decode("ascii")
@@ -113,3 +99,42 @@ def openai_compatible_evaluate(
         return ""
     msg = choices[0].get("message") or {}
     return str(msg.get("content", "")).strip()
+
+
+def openai_compatible_evaluate(
+    image_paths: Sequence[Path],
+    active_windows: Sequence[str],
+    ocr_per_screen: Sequence[str],
+    desktop_context_section: str = "",
+    system_load_section: str = "",
+    *,
+    api_key: str,
+    base_url: str = "https://api.openai.com/v1",
+    model: str = "gpt-4o-mini",
+    timeout: float = 180.0,
+    max_tokens: int = 1024,
+    max_image_side: int = _DEFAULT_MAX_IMAGE_SIDE,
+    json_mode: bool = True,
+) -> str:
+    n = len(image_paths)
+    if len(ocr_per_screen) != n:
+        raise ValueError("ocr_per_screen length must match image_paths")
+    prompt = build_activity_json_prompt(
+        n,
+        active_windows,
+        ocr_per_screen,
+        desktop_context_section=desktop_context_section,
+        system_load_section=system_load_section,
+    )
+    print(prompt)
+    return openai_compatible_json_completion(
+        prompt,
+        image_paths,
+        api_key=api_key,
+        base_url=base_url,
+        model=model,
+        timeout=timeout,
+        max_tokens=max_tokens,
+        max_image_side=max_image_side,
+        json_mode=json_mode,
+    )

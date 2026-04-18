@@ -4,18 +4,16 @@
 
 # Activity Agent
 
-PC activity monitor: multi-monitor screenshots, window titles, OCR, vision LLM (OpenAI-compatible or Ollama), and SQLite storage. A desktop UI is planned later.
+PC activity monitor: multi-monitor screenshots, window titles, OCR, vision LLM (OpenAI-compatible or Ollama), and SQLite storage. Browse results and trigger captures from the optional **web UI** (`activity-agent-web`).
 
 ## Repo layout
 
 ```
 ai-agent/
-├── main.py                 # example entrypoint
+├── main.py                 # CLI entrypoint
 ├── local.config.json       # local settings (create yourself; gitignored)
 ├── pyproject.toml
 ├── src/activity_agent/     # main package
-├── config/
-├── desktop/
 ├── data/                   # default SQLite DB location
 ├── assets/captures/        # screenshot PNGs (transient)
 └── tests/
@@ -28,6 +26,8 @@ Inside `src/activity_agent/`:
 - **`inference/ocr/`** — PaddleOCR wrapper (`image_to_text`)
 - **`pipeline/`** — `process_capture` orchestrates OCR → LLM → DB
 - **`storage/`** — SQLite helpers
+- **`ui/`** — optional FastAPI web app (`web_app.py`), Jinja templates, static CSS; **`llm_format.py`** shared JSON→summary formatting
+- **`tools/`** — small diagnostics (e.g. `python -m activity_agent.tools.paddle_gpu_check`)
 - **`config_local.py`** — finds and loads `local.config.json`
 
 ## Requirements
@@ -45,11 +45,30 @@ pip install -e .
 
 This installs `mss`, `requests`, `pywin32`, `psutil`, `paddlepaddle` (CPU wheel from PyPI), and `paddleocr`.
 
+### Web UI (optional)
+
+Local browser UI to list capture results, open a row (OCR + LLM), run one capture, and record verified fixes:
+
+```bash
+pip install -e ".[web]"
+activity-agent-web
+```
+
+Open **http://127.0.0.1:8765** (default). Bind address and port: **`web_host`**, **`web_port`** in `local.config.json`, or `activity-agent-web --host 127.0.0.1 --port 8765`.
+
 ### Paddle GPU (optional, faster OCR)
 
 The default PyPI **`paddlepaddle`** package is CPU-only. For NVIDIA GPUs, uninstall it and install a **GPU** build from [Paddle’s install docs](https://www.paddlepaddle.org.cn/install/quick) (pick the index matching your CUDA/driver, e.g. `cu129` on Windows). After `pip install -e .`, reinstall the GPU wheel if pip pulls CPU Paddle again.
 
 OCR device and GPU memory fraction can be set in **`local.config.json`** (see below).
+
+If the UI or logs say GPU is unavailable for OCR, check what **this same venv** sees:
+
+```bash
+python -m activity_agent.tools.paddle_gpu_check
+```
+
+You need **`compiled_with_cuda: True`** and **`cuda.device_count()` ≥ 1**. If `compiled_with_cuda` is **False**, you still have the **CPU-only** `paddlepaddle` wheel from PyPI (install **`paddlepaddle-gpu`** from Paddle’s CUDA index). If CUDA is compiled but **device count is 0**, fix drivers / `nvidia-smi` / `CUDA_VISIBLE_DEVICES` for the process that runs `activity-agent-web` or `main.py`.
 
 ## Configuration (`local.config.json`)
 
@@ -66,10 +85,14 @@ Typical keys:
 | `openai_model` | e.g. `gpt-4o-mini` |
 | `openai_max_tokens`, `openai_json_mode`, `llm_timeout`, `max_image_side` | Optional tuning |
 | `ollama_url`, `ollama_model`, `ollama_max_tokens` | When `llm_provider` is `ollama` |
+| `llm_context_loop_enabled` | `true` / `false`: planner + final LLM passes (default **false**). See AGENTS.md. |
+| `openai_planner_model`, `ollama_planner_model` | Optional; override planner model only when the context loop is on. |
+| `llm_planner_max_tokens`, `verified_solutions_prompt_limit` | Optional tuning for planner output and verified-fixes snippet size. |
 | `ocr_device` | e.g. `gpu:0` or `cpu` (optional; defaults to GPU when CUDA is available) |
 | `ocr_gpu_memory_fraction` | Optional `0`–`1` Paddle GPU memory cap |
 | `pipeline_interval_seconds` | `0`, missing, or invalid: run **once** and exit. Positive number: **`main.py`** repeats `run_capture_pipeline` every that many seconds until Ctrl+C. |
 | `system_load_cpu_sample_seconds` | How long to sample CPU for `SystemLoadCollector` (default **0.1**). Use **0** for a non-blocking read (less representative on first sample). |
+| `web_host`, `web_port` | Optional bind address / port for **`activity-agent-web`** (defaults `127.0.0.1`, `8765`). |
 
 Arguments passed to **`process_capture(...)`** override JSON values when provided. Optional **`desktop_context=`** / **`system_load=`** let you pass pre-built snapshots; otherwise fresh collectors run each pipeline pass.
 
@@ -80,7 +103,7 @@ Arguments passed to **`process_capture(...)`** override JSON values when provide
 3. **Desktop context** — `DesktopContextCollector().collect()` (unless `desktop_context=`) records foreground window (title, PID, executable), input idle, and in-process focus history (Windows).
 4. **System load** — `SystemLoadCollector().collect()` (unless `system_load=`) records CPU % (short sample), RAM use, and swap/page-file use (**psutil**).
 5. **OCR** — Each screenshot is run through PaddleOCR; text is sent to the LLM with images plus desktop-context and system-load blocks.
-6. **LLM** — Asks for **JSON** with `tasks`, `distractions`, and `problems` (arrays of strings). Default provider uses the OpenAI **Chat Completions** API with vision; set `llm_provider` to `ollama` for local models (e.g. LLaVA-class).
+6. **LLM** — Asks for **JSON** with `tasks`, `distractions`, and `problems` (plus optional `problem_solutions` when the context loop is enabled). Prompts distinguish real distractions from passive browser chrome (bookmarks bar, tabs, etc.). Default provider uses the OpenAI **Chat Completions** API with vision; set `llm_provider` to `ollama` for local models (e.g. LLaVA-class). Optional **`llm_context_loop_enabled`**: planner pass then final pass (see README config table / AGENTS.md).
 7. **Storage** — Row written to **`pipeline_results`**; screenshot files are deleted after a successful save.
 
 ## Running `main.py`
